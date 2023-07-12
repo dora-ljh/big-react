@@ -1,5 +1,11 @@
 import { REACT_ELEMENT_TYPE } from 'shared/ReactSymbols';
-import { Key, Ref, Props, ReactElement, ElementType } from 'shared/ReactTypes';
+import {
+	Key,
+	Ref,
+	Props,
+	ReactElementType,
+	ElementType
+} from 'shared/ReactTypes';
 
 // ReactElement
 const ReactElement = function (
@@ -7,7 +13,7 @@ const ReactElement = function (
 	key: Key,
 	ref: Ref,
 	props: Props
-): ReactElement {
+): ReactElementType {
 	const element = {
 		$$typeof: REACT_ELEMENT_TYPE,
 		type,
@@ -62,4 +68,4 @@ export const jsx = (type: ElementType, config: any, ...maybeChildren: any) => {
 };
 
 // 兼容开发版本的jsx，开发版的jsx会做一些兼容处理
-export const jsxDev = jsx;
+export const jsxDEV = jsx;
