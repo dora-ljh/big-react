@@ -67,5 +67,38 @@ export const jsx = (type: ElementType, config: any, ...maybeChildren: any) => {
 	return ReactElement(type, key, ref, props);
 };
 
-// 兼容开发版本的jsx，开发版的jsx会做一些兼容处理
-export const jsxDEV = jsx;
+/*
+兼容开发版本的jsx，开发版的jsx会做一些兼容处理
+在开发版时，children 直接在config中，故无需单独处理
+如 const jsx = <div a={'1'}>hello <span>big-react</span></div> 中
+console.log(type, config);
+输出
+span {children: 'big-react'}
+div {a: '1', children: Array(2)}
+
+* */
+export const jsxDEV = (type: ElementType, config: any) => {
+	let key: Key = null;
+	const props: Props = {};
+	let ref: Ref = null;
+
+	for (const prop in config) {
+		const val = config[prop];
+		if (prop === 'key') {
+			if (val !== undefined) {
+				key = '' + val;
+			}
+			continue;
+		}
+		if (prop === 'ref') {
+			if (val !== undefined) {
+				ref = val;
+			}
+			continue;
+		}
+		if ({}.hasOwnProperty.call(config, prop)) {
+			props[prop] = val;
+		}
+	}
+	return ReactElement(type, key, ref, props);
+};
