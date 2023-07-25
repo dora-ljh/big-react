@@ -6,22 +6,53 @@ import { Flags, NoFlags } from './fiberFlags';
 import { Container } from 'hostConfig';
 
 export class FiberNode {
+	// 对应的React组件的类型。对于用户定义的组件，type是一个函数或者是一个class。对于原生DOM节点，type是一个字符串，例如'div'，'span'等
 	type: any;
+	// 一个数值，标识了该Fiber节点的类型，如ClassComponent，FunctionComponent，HostComponent等。
 	tag: WorkTag;
+	// 当前正在工作中的props，当工作完成后，pendingProps会变为memoizedProps。
 	pendingProps: Props;
+	// 该Fiber节点的React key，用于标识和跟踪节点的唯一性。
 	key: Key;
+	// 对于class组件，stateNode是组件的实例。对于原生DOM元素，stateNode是对应的DOM节点。
 	stateNode: any;
+	// ref字段保存的是该节点的ref引用，可能是一个函数，也可能是一个包含current属性的对象，用于在commit阶段将该节点实例（或DOM元素）挂载到这个ref上
 	ref: Ref;
 
+	// 父Fiber节点，指向创建该Fiber的节点。
 	return: FiberNode | null;
+
+	/*
+  sibling 与 child 的关系，以及为什么 child 只需要是 第一个子节点就可以
+	<div>
+		<span>1</span>
+		<span>2</span>
+	</div>
+	生成的
+	div Fiber
+	|
+	|---child---> span Fiber (1)
+								 |
+								 |---sibling---> span Fiber (2)
+
+	* */
+
+	// 下一个兄弟Fiber节点。
 	sibling: FiberNode | null;
+	// 第一个子Fiber节点。
 	child: FiberNode | null;
+	// 表示这个Fiber在其兄弟Fiber中的位置。在React reconciliation算法中，用于判断两个Fiber是否相同，如果是相同类型且index也相同，那么他们就是相同的Fiber，React会复用这个Fiber的DOM和状态
 	index: number;
 
+	// 保存了上一次渲染完成后的props
 	memoizedProps: Props | null;
+	// 保存了上一次渲染完成后的state
 	memoizedState: any;
+	// 指向该Fiber节点的当前树中的对应Fiber节点，当React在进行更新时，会创建新的Fiber节点来代替旧的Fiber节点，这时旧的Fiber节点的alternate属性会指向新的Fiber节点，新的Fiber节点的alternate属性会指向旧的Fiber节点。
 	alternate: FiberNode | null;
+	// 用于表示Fiber节点在构建或更新过程中需要进行的操作或者已经进行过的操作，比如插入、删除、更新等等
 	flags: Flags;
+	// 存储着该Fiber节点上待处理的更新。
 	updateQueue: unknown;
 
 	constructor(tag: WorkTag, pendingProps: Props, key: Key) {
@@ -62,7 +93,8 @@ export class FiberNode {
 export class FiberRootNode {
 	container: Container;
 	current: FiberNode;
-	finishWork: FiberNode | null; // 保存递归完成的FiberNode
+	//  保存已完成的工作，也就是构建好的DOM结构。保存递归完成的FiberNode
+	finishWork: FiberNode | null;
 	constructor(container: Container, hostRootFiber: FiberNode) {
 		this.container = container;
 		this.current = hostRootFiber;
