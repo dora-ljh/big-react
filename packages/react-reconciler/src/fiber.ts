@@ -52,6 +52,8 @@ export class FiberNode {
 	alternate: FiberNode | null;
 	// 用于表示Fiber节点在构建或更新过程中需要进行的操作或者已经进行过的操作，比如插入、删除、更新等等
 	flags: Flags;
+	// 标记 child 中的 flags
+	subtreeFlags: Flags;
 	// 存储着该Fiber节点上待处理的更新。
 	updateQueue: unknown;
 
@@ -87,6 +89,7 @@ export class FiberNode {
 
 		// 副作用
 		this.flags = NoFlags;
+		this.subtreeFlags = NoFlags;
 	}
 }
 
@@ -119,6 +122,7 @@ export const createWorkInProgress = (
 		// update
 		wip.pendingProps = pendingProps;
 		wip.flags = NoFlags;
+		wip.subtreeFlags = NoFlags;
 	}
 	wip.type = current.type;
 	wip.updateQueue = current.updateQueue;
