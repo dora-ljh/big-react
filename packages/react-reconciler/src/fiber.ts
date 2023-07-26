@@ -111,12 +111,16 @@ export const createWorkInProgress = (
 	pendingProps: Props
 ): FiberNode => {
 	let wip = current.alternate;
+	// 如果当前Fiber节点没有替代节点 则会创建一个新的Fiber节点
 	if (wip === null) {
+		// 这个节点的这些属性会被初始化为与当前Fiber 节点相同值
 		// mount
 		wip = new FiberNode(current.tag, pendingProps, current.key);
 
+		// 目前对于根节点 stateNode 对应的是  FiberRootNode
 		wip.stateNode = current.stateNode;
 
+		// 这是一个初始化的步骤，这个新创建的节点被用于第一次渲染时
 		wip.alternate = wip;
 	} else {
 		// update

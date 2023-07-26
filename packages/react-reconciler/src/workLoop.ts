@@ -5,15 +5,22 @@ import { HostRoot } from './workTags';
 
 let workInProgress: FiberNode | null = null;
 
+// 准备一个新的工作进度
 function prepareFreshStack(root: FiberRootNode) {
+	// 这个 root.current 就是 hostRootFiber 也就是 fiber的根节点
+
+	// 创建一个新的工作进度节点，这个节点是当前Fiber节点（current）的替代节点，表示在下一次更新中应该呈现的状态
 	workInProgress = createWorkInProgress(root.current, {});
 }
 
 // 在fiber中调度update
+// 这个函数的作用是开始对某个Fiber节点进行调度更新
 export function scheduleUpdateOnFiber(fiber: FiberNode) {
 	// TODO 调度功能
 	// fiberRootNode
+	// 首先找到当前Fiber节点的root节点
 	const root = markUpdateFromFiberToRoot(fiber);
+	// 然后开始对root节点进行渲染
 	renderRoot(root);
 }
 
@@ -26,6 +33,7 @@ function markUpdateFromFiberToRoot(fiber: FiberNode) {
 		parent = node.return;
 	}
 	if (node.tag === HostRoot) {
+		//  这个stateNode 就是 FiberRootNode
 		return node.stateNode;
 	}
 	return null;
@@ -45,6 +53,8 @@ function renderRoot(root: FiberRootNode) {
 			workInProgress = null;
 		}
 	} while (true);
+	// 获取当前Fiber节点的替代节点（也就是“工作进度”节点）
+	// 每个Fiber节点都有一个替代节点，它表示在下一次更新中应该呈现的状态
 	const finishWork = root.current.alternate;
 	root.finishWork = finishWork;
 
@@ -52,7 +62,9 @@ function renderRoot(root: FiberRootNode) {
 	// commitRoot(root);
 }
 
+// 工作循环
 function workLoop() {
+	// 如果还有未处理的工作（如待渲染的Fiber节点），则继续执行该工作
 	while (workInProgress != null) {
 		performUnitOfWork(workInProgress);
 	}
@@ -61,23 +73,30 @@ function workLoop() {
 function performUnitOfWork(fiber: FiberNode) {
 	const next = beginWork(fiber);
 	fiber.memoizedProps = fiber.pendingProps;
+	// 返回null，说明这个Fiber节点已经完成了它的工作，接下来就需要完成这个Fiber节点的收尾工作
 	if (next === null) {
 		completeUnitOfWork(fiber);
 	} else {
+		// 返回了一个Fiber节点，说明当前的Fiber节点的工作还未完成，需要继续处理返回的Fiber节点
 		workInProgress = next;
 	}
 }
 
+// 用于完成一个Fiber节点的工作，包括它的子节点和兄弟节点
 function completeUnitOfWork(fiber: FiberNode) {
 	let node: FiberNode | null = fiber;
 
 	do {
+		// 完成当前Fiber节点的工作
 		completeWork(node);
 		const sibling = node.sibling;
+		// 如果当前Fiber节点有兄弟节点
 		if (sibling !== null) {
+			// 则将workInProgress更新为兄弟节点并返回
 			workInProgress = sibling;
 			return;
 		}
+		// 如果没有兄弟节点，则回到父节点，然后重复这个过程
 		node = node.return;
 		workInProgress = node;
 	} while (node !== null);

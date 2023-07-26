@@ -15,9 +15,12 @@ export const completeWork = (wip: FiberNode) => {
 
 	switch (wip.tag) {
 		case HostComponent:
+			// 检查当前 Fiber 是否存在对应的 DOM 实例
 			if (current !== null && wip.stateNode) {
 				// update
 			} else {
+				// 如果不存在，就会创建一个新的 DOM 实例，并将其挂载到 DOM 树中
+
 				// 1. 构建DOM
 				const instance = createInstance(wip.type, newProps);
 				// 2. 将DOM插入到DOM树中
@@ -27,9 +30,12 @@ export const completeWork = (wip: FiberNode) => {
 			bubbleProperties(wip);
 			return null;
 		case HostText:
+			// 检查当前 Fiber 是否存在对应的 DOM 实例
 			if (current !== null && wip.stateNode) {
 				// update
 			} else {
+				// 如果不存在，就会创建一个新的 DOM 实例，并将其挂载到 DOM 树中
+
 				// 1. 构建DOM
 				const instance = createTextInstance(newProps.content);
 				wip.stateNode = instance;
@@ -54,6 +60,8 @@ export const completeWork = (wip: FiberNode) => {
 	对于这样的数据，h3 中应该插入的 是 div，而不是A
 * */
 // parent 节点，插入  wip节点
+// 将 Fiber 节点的所有子节点添加到其父节点中。它会遍历所有的子节点
+// 深度优先搜索的算法来遍历所有的子节点和兄弟节点
 function appendAllChildren(parent: FiberNode, wip: FiberNode) {
 	let node = wip.child;
 
@@ -82,6 +90,7 @@ function appendAllChildren(parent: FiberNode, wip: FiberNode) {
 	}
 }
 
+// 合并所有子节点的 flags 和 subtreeFlags
 function bubbleProperties(wip: FiberNode) {
 	let subtreeFlags = NoFlags;
 	let child = wip.child;

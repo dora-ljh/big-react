@@ -27,10 +27,12 @@ export function updateContainer(
 	// element 就是render 中传入的 <App />
 	// 这个update，就是一个reactElement 的类型
 	const update = createUpdate<ReactElementType | null>(element);
+	// 把创建的更新加入到更新队列中
 	enqueueUpdate(
 		hostRootFiber.updateQueue as UpdateQueue<ReactElementType | null>,
 		update
 	);
+	// 开始调度更新
 	scheduleUpdateOnFiber(hostRootFiber);
 	return element;
 }
