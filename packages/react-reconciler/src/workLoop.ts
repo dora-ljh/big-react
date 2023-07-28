@@ -2,6 +2,7 @@ import { createWorkInProgress, FiberNode, FiberRootNode } from './fiber';
 import { beginWork } from './beginWork';
 import { completeWork } from './completeWork';
 import { HostRoot } from './workTags';
+import { MutationMask, NoFlags } from './fiberFlags';
 
 let workInProgress: FiberNode | null = null;
 
@@ -55,11 +56,42 @@ function renderRoot(root: FiberRootNode) {
 	} while (true);
 	// 获取当前Fiber节点的替代节点（也就是“工作进度”节点）
 	// 每个Fiber节点都有一个替代节点，它表示在下一次更新中应该呈现的状态
-	const finishWork = root.current.alternate;
-	root.finishWork = finishWork;
+	const finishedWork = root.current.alternate;
+	root.finishedWork = finishedWork;
 
 	// wip fiberNode 树，树中的 flags
-	// commitRoot(root);
+	commitRoot(root);
+}
+
+function commitRoot(root: FiberRootNode) {
+	const finishedWork = root.finishedWork;
+	if (finishedWork === null) {
+		return;
+	}
+	if (__DEV__) {
+		console.warn('commit阶段开始', finishedWork);
+	}
+	// 重置
+	root.finishedWork = null;
+
+	// 判断 是否存在3个子阶段需要执行的操作
+	// root flags root subtreeFlags
+	const subtreeHasEffect =
+		(finishedWork.subtreeFlags & MutationMask) !== NoFlags;
+
+	const rootHasEffect = (finishedWork.flags & MutationMask) !== NoFlags;
+
+	if (subtreeHasEffect || rootHasEffect) {
+		// beforeMutation
+
+		// mutation Placement
+
+		root.current = finishedWork;
+
+		// layout
+	} else {
+		root.current = finishedWork;
+	}
 }
 
 // 工作循环

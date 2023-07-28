@@ -97,12 +97,12 @@ export class FiberRootNode {
 	container: Container;
 	current: FiberNode;
 	//  保存已完成的工作，也就是构建好的DOM结构。保存递归完成的FiberNode
-	finishWork: FiberNode | null;
+	finishedWork: FiberNode | null;
 	constructor(container: Container, hostRootFiber: FiberNode) {
 		this.container = container;
 		this.current = hostRootFiber;
 		hostRootFiber.stateNode = this;
-		this.finishWork = null;
+		this.finishedWork = null;
 	}
 }
 
