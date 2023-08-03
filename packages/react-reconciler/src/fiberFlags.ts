@@ -4,4 +4,5 @@ export const Placement = 0b0000010;
 export const Update = 0b0000100;
 export const ChildDeletion = 0b0001000;
 
+// 标记是否需要执行 mutation阶段
 export const MutationMask = Placement | Update | ChildDeletion;

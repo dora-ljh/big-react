@@ -3,6 +3,7 @@ import { beginWork } from './beginWork';
 import { completeWork } from './completeWork';
 import { HostRoot } from './workTags';
 import { MutationMask, NoFlags } from './fiberFlags';
+import { commitMutationEffects } from './commitWork';
 
 let workInProgress: FiberNode | null = null;
 
@@ -74,17 +75,23 @@ function commitRoot(root: FiberRootNode) {
 	// 重置
 	root.finishedWork = null;
 
+	// commit 阶段的三个子阶段
+
 	// 判断 是否存在3个子阶段需要执行的操作
 	// root flags root subtreeFlags
+	// 判断 subtreeFlags 中是否包含 MutationMask 中指定的flags
 	const subtreeHasEffect =
 		(finishedWork.subtreeFlags & MutationMask) !== NoFlags;
 
+	// 判断 flags 中是否包含 MutationMask 中指定的flags
 	const rootHasEffect = (finishedWork.flags & MutationMask) !== NoFlags;
 
+	// 如果包含，则说明当前存在 mutation 阶段需要执行的操作
 	if (subtreeHasEffect || rootHasEffect) {
 		// beforeMutation
 
 		// mutation Placement
+		commitMutationEffects(finishedWork);
 
 		root.current = finishedWork;
 
