@@ -9,7 +9,6 @@ function ChildReconciler(shouldTrackEffects: boolean) {
 	// 把div等创建 react Fiber
 	function reconcileSingleElement(
 		returnFiber: FiberNode,
-		// @ts-ignore
 		currentFiber: FiberNode | null,
 		element: ReactElementType
 	) {

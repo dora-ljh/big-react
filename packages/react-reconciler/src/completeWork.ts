@@ -3,6 +3,7 @@ import { FiberNode } from './fiber';
 import { HostComponent, HostRoot, HostText } from './workTags';
 import {
 	appendInitialChild,
+	Container,
 	createInstance,
 	createTextInstance
 } from 'hostConfig';
@@ -22,7 +23,8 @@ export const completeWork = (wip: FiberNode) => {
 				// 如果不存在，就会创建一个新的 DOM 实例，并将其挂载到 DOM 树中
 
 				// 1. 构建DOM
-				const instance = createInstance(wip.type, newProps);
+				// const instance = createInstance(wip.type, newProps);
+				const instance = createInstance(wip.type);
 				// 2. 将DOM插入到DOM树中
 				appendAllChildren(instance, wip);
 				wip.stateNode = instance;
@@ -62,7 +64,7 @@ export const completeWork = (wip: FiberNode) => {
 // parent 节点，插入  wip节点
 // 将 Fiber 节点的所有子节点添加到其父节点中。它会遍历所有的子节点
 // 深度优先搜索的算法来遍历所有的子节点和兄弟节点
-function appendAllChildren(parent: FiberNode, wip: FiberNode) {
+function appendAllChildren(parent: Container, wip: FiberNode) {
 	let node = wip.child;
 
 	while (node !== null) {

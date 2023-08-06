@@ -53,10 +53,12 @@ const commitPlacement = (finishedWork: FiberNode) => {
 
 	// finishedWork ~~ DOM finishedWork对应的dom阶段
 	// 再将找到的 DOM append 到 parent DOM 中
-	appendPlacementNodeIntoContainer(finishedWork, hostParent);
+	if (hostParent !== null) {
+		appendPlacementNodeIntoContainer(finishedWork, hostParent);
+	}
 };
 
-function getHostParent(fiber: FiberNode): Container {
+function getHostParent(fiber: FiberNode): Container | null {
 	let parent = fiber.return;
 	// 找到父级节点中的 dom 元素
 	while (parent) {
@@ -73,6 +75,7 @@ function getHostParent(fiber: FiberNode): Container {
 	if (__DEV__) {
 		console.warn('未找到host parent');
 	}
+	return null;
 }
 
 function appendPlacementNodeIntoContainer(
