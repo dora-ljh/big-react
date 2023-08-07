@@ -122,6 +122,7 @@ export const createWorkInProgress = (
 
 		// 这是一个初始化的步骤，这个新创建的节点被用于第一次渲染时
 		wip.alternate = wip;
+		current.alternate = wip;
 	} else {
 		// update
 		wip.pendingProps = pendingProps;

@@ -85,7 +85,7 @@ function appendPlacementNodeIntoContainer(
 	// append 之前应该先确认下 finishedWork 是  HostComponent HostText 才可以 append
 	// 因为对于需要append的tag类型不可能是HostRoot类型的，子 dom要是div 或者 直接是字符才可以append
 	if (finishedWork.tag === HostComponent || finishedWork.tag === HostText) {
-		appendChildToContainer(finishedWork.stateNode, hostParent);
+		appendChildToContainer(hostParent, finishedWork.stateNode);
 		return;
 	}
 	const child = finishedWork.child;
