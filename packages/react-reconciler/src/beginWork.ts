@@ -1,9 +1,15 @@
 // 递归中的递阶段
 import { FiberNode } from './fiber';
-import { HostComponent, HostRoot, HostText } from './workTags';
+import {
+	FunctionComponent,
+	HostComponent,
+	HostRoot,
+	HostText
+} from './workTags';
 import { processUpdateQueue, UpdateQueue } from './updateQueue';
 import { ReactElementType } from 'shared/ReactTypes';
 import { mountChildFibers, reconcileChildFibers } from './childFibers';
+import { renderWithHooks } from './fiberHooks';
 
 // 根据当前fiber，创建 子fiber，并返回
 export const beginWork = (wip: FiberNode) => {
@@ -18,6 +24,8 @@ export const beginWork = (wip: FiberNode) => {
 		case HostText:
 			// 文本节点 处理
 			return null;
+		case FunctionComponent:
+			return updateFunctionComponent(wip);
 		default:
 			if (__DEV__) {
 				console.warn('beginWork 未实现的类型');
@@ -26,6 +34,21 @@ export const beginWork = (wip: FiberNode) => {
 	}
 	return null;
 };
+
+function updateFunctionComponent(wip: FiberNode) {
+	/*
+		function App(){
+			return <img/>
+		}
+		App()
+		对于 FunctionComponent 想拿到他的child，就直接调用这个 FunctionComponent 即可
+
+	* */
+	const nextChildren = renderWithHooks(wip);
+
+	reconcileChildren(wip, nextChildren);
+	return wip.child;
+}
 
 // 处理 根 Fiber节点 ，返回根节点下的子fiber
 function updateHostRoot(wip: FiberNode) {
