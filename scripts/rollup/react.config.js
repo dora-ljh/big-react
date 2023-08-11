@@ -50,13 +50,13 @@ export default [
 					写成 jsx-runtime.js 会被打包成 global['jsx-runtime'] || global['jsx-runtime'].js
 					会兼容 写成 jsx-runtime 的情况
 				* */
-				name: 'jsx-runtime.js',
+				name: 'jsx-runtime',
 				format: 'umd'
 			},
 			// jsx-dev-runtime
 			{
 				file: `${pkgDistPath}/jsx-dev-runtime.js`,
-				name: 'jsx-dev-runtime.js',
+				name: 'jsx-dev-runtime',
 				format: 'umd'
 			}
 		],
