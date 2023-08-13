@@ -12,7 +12,11 @@ import {
 	createInstance,
 	createTextInstance
 } from 'hostConfig';
-import { NoFlags } from './fiberFlags';
+import { NoFlags, Update } from './fiberFlags';
+
+function markUpdate(fiber: FiberNode) {
+	fiber.flags |= Update;
+}
 
 export const completeWork = (wip: FiberNode) => {
 	// 递归中的归
@@ -40,6 +44,11 @@ export const completeWork = (wip: FiberNode) => {
 			// 检查当前 Fiber 是否存在对应的 DOM 实例
 			if (current !== null && wip.stateNode) {
 				// update
+				const oldText = current.memoizedProps.content;
+				const newText = newProps.content;
+				if (oldText !== newText) {
+					markUpdate(wip);
+				}
 			} else {
 				// 如果不存在，就会创建一个新的 DOM 实例，并将其挂载到 DOM 树中
 
