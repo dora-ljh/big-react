@@ -85,8 +85,8 @@ function appendAllChildren(parent: Container, wip: FiberNode) {
 	let node = wip.child;
 
 	while (node !== null) {
-		if (node?.tag === HostComponent || node?.tag === HostText) {
-			appendInitialChild(parent, node.stateNode);
+		if (node.tag === HostComponent || node.tag === HostText) {
+			appendInitialChild(parent, node?.stateNode);
 		} else if (node.child !== null) {
 			node.child.return = node;
 			node = node.child;

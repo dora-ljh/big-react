@@ -111,14 +111,13 @@ function commitDeletion(childToDelete: FiberNode) {
 				if (__DEV__) {
 					console.warn('未处理的unmount类型', unmountFiber);
 				}
-				break;
 		}
 	});
 	// 移除rootHostComponent的DOM
 	if (rootHostNode !== null) {
 		const hostParent = getHostParent(childToDelete);
 		if (hostParent !== null) {
-			removeChild(rootHostNode, hostParent);
+			removeChild((rootHostNode as FiberNode).stateNode, hostParent);
 		}
 	}
 	childToDelete.return = null;

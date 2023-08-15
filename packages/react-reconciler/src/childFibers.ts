@@ -41,6 +41,8 @@ function ChildReconciler(shouldTrackEffects: boolean) {
 						existing.return = returnFiber;
 						return existing;
 					}
+
+					// 删掉旧的
 					deleteChild(returnFiber, currentFiber);
 					break work;
 				} else {
@@ -64,7 +66,6 @@ function ChildReconciler(shouldTrackEffects: boolean) {
 	// 创建 文本节点的fiberNode
 	function reconcileSingleTextNode(
 		returnFiber: FiberNode,
-		// @ts-ignore
 		currentFiber: FiberNode | null,
 		content: string | number
 	) {
@@ -119,7 +120,7 @@ function ChildReconciler(shouldTrackEffects: boolean) {
 					break;
 			}
 		}
-		// TODO 多节点的情况 ul> li *
+		// TODO 多节点的情况 ul> li * 3
 
 		// HostText
 		if (typeof newChild === 'string' || typeof newChild === 'number') {

@@ -30,7 +30,6 @@ export function commitUpdate(fiber: FiberNode) {
 		case HostText:
 			const text = fiber.memoizedProps.content;
 			return commitTextUpdate(fiber.stateNode, text);
-			break;
 
 		default:
 			if (__DEV__) {

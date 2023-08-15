@@ -123,7 +123,7 @@ export const createWorkInProgress = (
 		wip.stateNode = current.stateNode;
 
 		// 这是一个初始化的步骤，这个新创建的节点被用于第一次渲染时
-		wip.alternate = wip;
+		wip.alternate = current;
 		current.alternate = wip;
 	} else {
 		// update
