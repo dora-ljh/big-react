@@ -20,6 +20,7 @@ let workInProgressHook: Hook | null = null;
 
 let currentHook: Hook | null = null;
 
+// 只有在函数组件内部，才会写入  currentDispatcher
 const { currentDispatcher } = internals;
 
 interface Hook {
@@ -28,25 +29,33 @@ interface Hook {
 	next: Hook | null;
 }
 
+/**
+ * 用于在函数组件中使用 Hooks 的渲染流程
+ * */
 export function renderWithHooks(wip: FiberNode) {
 	// render 之前，赋值操作
-	// 在函数组件内部调用的时候，记录当前fiber，
+	// 为了在函数组件内部使用 Hooks 时能够获取到当前组件的 Fiber 节点
+	// 并且只会在函数自建内部才会记录
 	currentlyRenderingFiber = wip;
 	// 接下来要把这个参数赋值为链表，所以先重置一下
 	wip.memoizedState = null;
 
+	// 这个current 拿到的就是 上次渲染的fiber，wip就是本次的fiber，如果是mount的话就是 null
 	const current = wip.alternate;
 	if (current !== null) {
 		// update
 		currentDispatcher.current = HooksDispatcherOnUpdate;
 	} else {
 		// mount
+		// mount 阶段写入mount 的hooks
 		currentDispatcher.current = HooksDispatcherOnMount;
 	}
 
 	const Component = wip.type;
 	const props = wip.pendingProps;
 	// FC render
+	// 在这个里边调用的  useState 即可保证 currentDispatcher 不为空
+	// 如果是update，这里获取的是wip的props，是新传入的props
 	const children = Component(props);
 
 	// 重置操作
@@ -65,7 +74,10 @@ const HooksDispatcherOnUpdate: Dispatcher = {
 	useState: updateState
 };
 
-// useState Hook 在组件更新时的处理函数
+/**
+ * useState Hook 在组件更新时的处理函数
+ * updateState 是不需要传入参数的，参数是dispatch 传入的参数
+ * */
 function updateState<State>(): [State, Dispatch<State>] {
 	// 找到当前useState对应的hook数据
 	const hook = updateWorkInProgressHook();
@@ -75,19 +87,28 @@ function updateState<State>(): [State, Dispatch<State>] {
 	const pending = queue.shared.pending;
 
 	if (pending !== null) {
+		// 这里就是调用处理调用的state值
 		const { memoizedState } = processUpdateQueue(hook.memoizedState, pending);
+		// 新的hook 的 memoizedState 就为处理好的值
 		hook.memoizedState = memoizedState;
 	}
 	return [hook.memoizedState, queue.dispatch as Dispatch<State>];
 }
 
+/**
+ * 获取当前 Hook 并为其设置更新队列和状态链表
+ * */
 function updateWorkInProgressHook(): Hook {
 	// TODO render阶段触发的更新
 	let nextCurrentHook: Hook | null;
 	if (currentHook === null) {
 		// 这是这个FC update时的第一个hook
+		// 这个current 是拿到渲染前的fiber
+		// currentlyRenderingFiber就是当前新的fiber
+		// 初始化的时候把currentlyRenderingFiber的memoizedState 设置为了null
 		const current = currentlyRenderingFiber?.alternate;
 		if (current !== null) {
+			// 所以这里那的memoizedState就是hooks链表的第一个hook
 			nextCurrentHook = current?.memoizedState;
 		} else {
 			// mount 进入这里不是mount，所以这里也是异常情况
@@ -98,6 +119,7 @@ function updateWorkInProgressHook(): Hook {
 		nextCurrentHook = currentHook.next;
 	}
 
+	// 渲染前的hook都已经完了，旧的hook还进来这个函数，只能说明比上次多了
 	if (nextCurrentHook === null) {
 		// mount/update u1 u2 u3
 		// update       u1 u2 u3 u4
@@ -107,9 +129,13 @@ function updateWorkInProgressHook(): Hook {
 		);
 	}
 
+	// 这里把全局的 currentHook 赋值一下，记录一下当前正在处理的hook
+	// nextCurrentHook是用在函数内的
 	currentHook = nextCurrentHook as Hook;
 	const newHook: Hook = {
+		// 这个memoizedState是hook中具体记录的值，如[num,setNum]=useState(100)中的num
 		memoizedState: currentHook.memoizedState,
+		//  setNum(3) 中的 3 就会在 updateQueue的padding中
 		updateQueue: currentHook.updateQueue,
 		next: null
 	};
@@ -119,17 +145,20 @@ function updateWorkInProgressHook(): Hook {
 			throw new Error('请在函数组件内调用hook');
 		} else {
 			workInProgressHook = newHook;
+			// 新的fiber的memoizedState就等于第一个hook
 			currentlyRenderingFiber.memoizedState = workInProgressHook;
 		}
 	} else {
-		// mount时 后续的hook
+		// mount时 后续的hook就用next链接起来
 		workInProgressHook.next = newHook;
 		workInProgressHook = newHook;
 	}
 	return workInProgressHook;
 }
 
-// useState Hook 在组件初次挂载时的处理函数
+/**
+ * 用于在函数组件初次渲染时，初始化状态，并为状态绑定更新操作的 dispatch
+ * */
 function mountState<State>(
 	initialState: (() => State) | State
 ): [State, Dispatch<State>] {
@@ -153,18 +182,25 @@ function mountState<State>(
 	return [memoizedState, dispatch];
 }
 
-// 用于在状态更新时将更新操作放入更新队列，并触发调度更新
+/**
+ * 用于在状态更新时，将更新操作放入更新队列，并触发调度更新
+ * */
 function dispatchSetState<State>(
 	fiber: FiberNode,
 	updateQueue: UpdateQueue<State>,
 	action: Action<State>
 ) {
+	// 这个update 里的action 就是传入的 state 值
 	const update = createUpdate(action);
+	// 将 update 放进 updateQueue 的pending 中
 	enqueueUpdate(updateQueue, update);
+	// 开始调度更新
 	scheduleUpdateOnFiber(fiber);
 }
 
-// 根据条件将新的 Hook 添加到链表中，并且返回当前 hook
+/**
+ * 用于在 Hook 链表中添加新的 Hook，并返回当前添加的 Hook
+ * */
 function mountWorkInProgressHook(): Hook {
 	const hook: Hook = {
 		memoizedState: null,
