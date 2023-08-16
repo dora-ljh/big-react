@@ -20,7 +20,7 @@ function prepareFreshStack(root: FiberRootNode) {
 export function scheduleUpdateOnFiber(fiber: FiberNode) {
 	// TODO 调度功能
 	// fiberRootNode
-	// 首先找到当前Fiber节点的root节点
+	// 首先找到根管理节点
 	const root = markUpdateFromFiberToRoot(fiber);
 	// 然后开始对root节点进行渲染
 	renderRoot(root);
@@ -41,11 +41,15 @@ function markUpdateFromFiberToRoot(fiber: FiberNode) {
 	return null;
 }
 
+/**
+ * 开始从根管理节点渲染
+ * */
 function renderRoot(root: FiberRootNode) {
-	// 初始化
+	// 初始化 创建 workInProgress
 	prepareFreshStack(root);
 	do {
 		try {
+			// 处理每个fiber，打标记
 			workLoop();
 			break;
 		} catch (e) {
@@ -64,6 +68,9 @@ function renderRoot(root: FiberRootNode) {
 	commitRoot(root);
 }
 
+/**
+ * @param  root 管理的根节点
+ * */
 function commitRoot(root: FiberRootNode) {
 	const finishedWork = root.finishedWork;
 	if (finishedWork === null) {

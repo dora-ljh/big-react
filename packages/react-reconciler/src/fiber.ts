@@ -96,13 +96,18 @@ export class FiberNode {
 }
 
 export class FiberRootNode {
+	// React 渲染的DOM容器
 	container: Container;
+	// 根FiberNode节点
 	current: FiberNode;
 	//  保存已完成的工作，也就是构建好的DOM结构。保存递归完成的FiberNode
 	finishedWork: FiberNode | null;
 	constructor(container: Container, hostRootFiber: FiberNode) {
 		this.container = container;
+		// FiberRootNode 的current 为 根 FiberNode
 		this.current = hostRootFiber;
+		// 根fiberNode节点的stateNode 为 FiberRootNode
+		// 这样在 Fiber 节点中可以通过 stateNode 属性反向获取到所属的 FiberRootNode 实例
 		hostRootFiber.stateNode = this;
 		this.finishedWork = null;
 	}
