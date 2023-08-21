@@ -6,6 +6,7 @@ import {
 	updateContainer
 } from 'react-reconciler/src/fiberReconciler';
 import { ReactElementType } from 'shared/ReactTypes';
+import { initEvent } from './SyntheticEvent';
 
 /**
  * 用于创建一个 React 根节点
@@ -17,6 +18,7 @@ export function createRoot(container: Container) {
 	return {
 		// render 方法用于将 React 元素渲染到根节点上
 		render(element: ReactElementType) {
+			initEvent(container, 'click');
 			return updateContainer(element, root);
 		}
 	};
