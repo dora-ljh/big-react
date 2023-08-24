@@ -16,6 +16,8 @@ import {
 	appendChildToContainer,
 	commitUpdate,
 	Container,
+	insertChildToContainer,
+	Instance,
 	removeChild
 } from 'hostConfig';
 
@@ -159,12 +161,67 @@ const commitPlacement = (finishedWork: FiberNode) => {
 	// parent DOM 得知道他的父节点
 	const hostParent = getHostParent(finishedWork);
 
+	// host sibling
+	const sibling = getHostSibling(finishedWork);
+
 	// finishedWork ~~ DOM finishedWork对应的dom阶段
 	// 再将找到的 DOM append 到 parent DOM 中
 	if (hostParent !== null) {
-		appendPlacementNodeIntoContainer(finishedWork, hostParent);
+		insertOrAppendPlacementNodeIntoContainer(finishedWork, hostParent, sibling);
 	}
 };
+
+/**
+ * 找到相邻的有真实DOM的节点，
+ * */
+function getHostSibling(fiber: FiberNode) {
+	/*
+		<A/><B/>
+		这种就需要一直找到组件下的HostComponent或者HostText比如div或者字符
+		A或者B下都可能还是FunctionComponent故需要while
+		如果是 <App/><div/>
+		App 组件下是 A组件
+		那A组件的 HostSibling 就为 div，需要向上找
+	* */
+	let node: FiberNode = fiber;
+	findSibling: while (true) {
+		// 如果没有兄弟节点，则看一下父节点，如果父节点有 sibling，那就会终止进入，不终止只能说明找到 HostRoot 也没找到 HostSibling
+		while (node.sibling === null) {
+			const parent = node.return;
+			// 没找到
+			if (
+				parent === null ||
+				parent.tag === HostComponent ||
+				parent.tag === HostRoot
+			) {
+				return null;
+			}
+			node = parent;
+		}
+
+		node.sibling.return = node.return;
+		node = node.sibling;
+		// 说明不是一个可直接操作的类型
+		while (node.tag !== HostText && node.tag !== HostComponent) {
+			// 向下遍历
+			// 不稳定的节点，不能作为HostSibling
+			// 如果flags中包含 Placement
+			if ((node.flags & Placement) !== NoFlags) {
+				continue findSibling;
+			}
+			if (node.child === null) {
+				continue findSibling;
+			} else {
+				node.child.return = node;
+				node = node.child;
+			}
+		}
+		// 如果flags中不包含 Placement
+		if ((node.flags & Placement) === NoFlags) {
+			return node.stateNode;
+		}
+	}
+}
 
 function getHostParent(fiber: FiberNode): Container | null {
 	let parent = fiber.return;
@@ -186,22 +243,29 @@ function getHostParent(fiber: FiberNode): Container | null {
 	return null;
 }
 
-function appendPlacementNodeIntoContainer(
+function insertOrAppendPlacementNodeIntoContainer(
 	finishedWork: FiberNode,
-	hostParent: Container
+	hostParent: Container,
+	before?: Instance
 ) {
 	// append 之前应该先确认下 finishedWork 是  HostComponent HostText 才可以 append
 	// 因为对于需要append的tag类型不可能是HostRoot类型的，子 dom要是div 或者 直接是字符才可以append
 	if (finishedWork.tag === HostComponent || finishedWork.tag === HostText) {
-		appendChildToContainer(hostParent, finishedWork.stateNode);
+		//  before 存在就插入到child前边
+		if (before) {
+			insertChildToContainer(finishedWork.stateNode, hostParent, before);
+		} else {
+			appendChildToContainer(hostParent, finishedWork.stateNode);
+		}
+
 		return;
 	}
 	const child = finishedWork.child;
 	if (child !== null) {
-		appendPlacementNodeIntoContainer(child, hostParent);
+		insertOrAppendPlacementNodeIntoContainer(child, hostParent);
 		let sibling = child.sibling;
 		while (sibling !== null) {
-			appendPlacementNodeIntoContainer(sibling, hostParent);
+			insertOrAppendPlacementNodeIntoContainer(sibling, hostParent);
 			sibling = sibling.sibling;
 		}
 	}
