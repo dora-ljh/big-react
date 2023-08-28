@@ -78,6 +78,26 @@ const commitMutationEffectsOnFiber = (finishedWork: FiberNode) => {
 	}
 };
 
+function recordHostChildrenToDelete(
+	childrenToDelete: FiberNode[],
+	unmountFiber: FiberNode
+) {
+	// 1. 找到第一个 root host节点
+	const lastOne = childrenToDelete[childrenToDelete.length - 1];
+	if (!lastOne) {
+		childrenToDelete.push(unmountFiber);
+	} else {
+		let node = lastOne.sibling;
+		while (node !== null) {
+			if (unmountFiber === node) {
+				childrenToDelete.push(unmountFiber);
+			}
+			node = node.sibling;
+		}
+	}
+	// 2. 每找到一个host节点，判断下这个节点是不是 第1步找到的那个兄弟节点
+}
+
 /*
 <div>
 	<App/>
@@ -91,20 +111,32 @@ function App(){
 div=>p>12>p
 * */
 function commitDeletion(childToDelete: FiberNode) {
-	let rootHostNode: FiberNode | null = null;
+	/*
+		可能是 Fragment，Fragment 中会包含需要删除的多个子节点
+		比如：
+		<div>
+			<p>xxx</p>
+		</div>
+		p需要删除时，只需要操作 div.removeChild(p)
+		但是如果是：
+		<div>
+			<>
+				<p>xxx</p>
+				<p>yyy</p>
+			</>
+		</div>
+		Fragment删除时，就需要把里边包含的p节点都删除
+	 * */
+	const rootChildrenToDelete: FiberNode[] = [];
 	// 递归子树
 	commitNestedComponent(childToDelete, (unmountFiber) => {
 		switch (unmountFiber.tag) {
 			case HostComponent:
-				if (rootHostNode === null) {
-					rootHostNode = unmountFiber;
-				}
+				recordHostChildrenToDelete(rootChildrenToDelete, unmountFiber);
 				// TODO 解绑ref
 				return;
 			case HostText:
-				if (rootHostNode === null) {
-					rootHostNode = unmountFiber;
-				}
+				recordHostChildrenToDelete(rootChildrenToDelete, unmountFiber);
 				return;
 			case FunctionComponent:
 				// TODO useEffect unmount
@@ -116,10 +148,12 @@ function commitDeletion(childToDelete: FiberNode) {
 		}
 	});
 	// 移除rootHostComponent的DOM
-	if (rootHostNode !== null) {
+	if (rootChildrenToDelete.length) {
 		const hostParent = getHostParent(childToDelete);
 		if (hostParent !== null) {
-			removeChild((rootHostNode as FiberNode).stateNode, hostParent);
+			rootChildrenToDelete.forEach((node) => {
+				removeChild(node.stateNode, hostParent);
+			});
 		}
 	}
 	childToDelete.return = null;

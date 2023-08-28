@@ -1,4 +1,4 @@
-import { REACT_ELEMENT_TYPE } from 'shared/ReactSymbols';
+import { REACT_ELEMENT_TYPE, REACT_FRAGMENT_TYPE } from 'shared/ReactSymbols';
 import {
 	Key,
 	Ref,
@@ -74,6 +74,8 @@ export const jsx = (type: ElementType, config: any, ...maybeChildren: any) => {
 	}
 	return ReactElement(type, key, ref, props);
 };
+
+export const Fragment = REACT_FRAGMENT_TYPE;
 
 /*
 兼容开发版本的jsx，开发版的jsx会做一些兼容处理

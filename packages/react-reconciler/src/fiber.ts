@@ -1,5 +1,10 @@
 import { Key, Props, ReactElementType, Ref } from 'shared/ReactTypes';
-import { FunctionComponent, HostComponent, WorkTag } from './workTags';
+import {
+	Fragment,
+	FunctionComponent,
+	HostComponent,
+	WorkTag
+} from './workTags';
 import { Flags, NoFlags } from './fiberFlags';
 
 // 这里之所以不写成 ./hostConfig 是因为宿主环境不同，hostConfig的位置也不同，比如在react-DOM中的 hostConfig
@@ -60,7 +65,7 @@ export class FiberNode {
 
 	constructor(tag: WorkTag, pendingProps: Props, key: Key) {
 		this.tag = tag;
-		this.key = key;
+		this.key = key || null;
 		// 如果 HostComponent 是 <div> 的话，stateNode就是div的DOM
 		this.stateNode = null;
 		// 对于一个 FunctionComponent 来说，type就是 FunctionComponent本身
@@ -157,5 +162,10 @@ export function createFiberFromElement(element: ReactElementType) {
 	}
 	const fiber = new FiberNode(fiberTag, props, key);
 	fiber.type = type;
+	return fiber;
+}
+
+export function createFiberFromFragment(elements: any[], key: Key): FiberNode {
+	const fiber = new FiberNode(Fragment, elements, key);
 	return fiber;
 }
