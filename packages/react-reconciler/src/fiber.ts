@@ -9,6 +9,7 @@ import { Flags, NoFlags } from './fiberFlags';
 
 // 这里之所以不写成 ./hostConfig 是因为宿主环境不同，hostConfig的位置也不同，比如在react-DOM中的 hostConfig
 import { Container } from 'hostConfig';
+import { Lane, Lanes, NoLane, NoLanes } from './fiberLanes';
 
 export class FiberNode {
 	// 对应的React组件的类型。对于用户定义的组件，type是一个函数或者是一个class。对于原生DOM节点，type是一个字符串，例如'div'，'span'等
@@ -107,6 +108,8 @@ export class FiberRootNode {
 	current: FiberNode;
 	//  保存已完成的工作，也就是构建好的DOM结构。保存递归完成的FiberNode
 	finishedWork: FiberNode | null;
+	pendingLanes: Lanes;
+	finishedLane: Lane;
 	constructor(container: Container, hostRootFiber: FiberNode) {
 		this.container = container;
 		// FiberRootNode 的current 为 根 FiberNode
@@ -115,6 +118,8 @@ export class FiberRootNode {
 		// 这样在 Fiber 节点中可以通过 stateNode 属性反向获取到所属的 FiberRootNode 实例
 		hostRootFiber.stateNode = this;
 		this.finishedWork = null;
+		this.pendingLanes = NoLanes;
+		this.finishedLane = NoLane;
 	}
 }
 

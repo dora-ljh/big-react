@@ -4,6 +4,7 @@ import { completeWork } from './completeWork';
 import { HostRoot } from './workTags';
 import { MutationMask, NoFlags } from './fiberFlags';
 import { commitMutationEffects } from './commitWork';
+import { Lane, mergeLanes } from './fiberLanes';
 
 let workInProgress: FiberNode | null = null;
 
@@ -17,13 +18,20 @@ function prepareFreshStack(root: FiberRootNode) {
 
 // 在fiber中调度update
 // 这个函数的作用是开始对某个Fiber节点进行调度更新
-export function scheduleUpdateOnFiber(fiber: FiberNode) {
+export function scheduleUpdateOnFiber(fiber: FiberNode, lane: Lane) {
 	// TODO 调度功能
 	// fiberRootNode
 	// 首先找到根管理节点
 	const root = markUpdateFromFiberToRoot(fiber);
+
+	markRootUpdated(root, lane);
+
 	// 然后开始对root节点进行渲染
 	renderRoot(root);
+}
+
+function markRootUpdated(root: FiberRootNode, lane: Lane) {
+	root.pendingLanes = mergeLanes(root.pendingLanes, lane);
 }
 
 // 从当前fiber 找到 最顶端 root fiber

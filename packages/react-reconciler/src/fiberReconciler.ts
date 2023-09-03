@@ -10,6 +10,7 @@ import {
 } from './updateQueue';
 import { ReactElementType } from 'shared/ReactTypes';
 import { scheduleUpdateOnFiber } from './workLoop';
+import { requestUpdateLane } from './fiberLanes';
 
 /**
  * 用于创建一个容器，用于管理 React 应用的渲染过程
@@ -36,9 +37,12 @@ export function updateContainer(
 ) {
 	// 这里拿到的是 根FiberNode
 	const hostRootFiber = root.current;
+
+	const lane = requestUpdateLane();
+
 	// element 就是render 中传入的 <App />
 	// 这个update里的action，就是一个reactElement 的类型
-	const update = createUpdate<ReactElementType | null>(element);
+	const update = createUpdate<ReactElementType | null>(element, lane);
 	// 把创建的更新加入到更新队列中
 	// 把在 createContainer 中创建的更新队列的壳子 放进一个更新
 	enqueueUpdate(
@@ -46,6 +50,6 @@ export function updateContainer(
 		update
 	);
 	// 开始调度更新 传入的是 根FiberNode
-	scheduleUpdateOnFiber(hostRootFiber);
+	scheduleUpdateOnFiber(hostRootFiber, lane);
 	return element;
 }

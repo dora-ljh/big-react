@@ -11,6 +11,7 @@ import {
 } from './updateQueue';
 import { Action } from 'shared/ReactTypes';
 import { scheduleUpdateOnFiber } from './workLoop';
+import { requestUpdateLane } from './fiberLanes';
 
 // 当前处理的fiber
 // 这个参数只会在函数组件内部使用，
@@ -190,12 +191,13 @@ function dispatchSetState<State>(
 	updateQueue: UpdateQueue<State>,
 	action: Action<State>
 ) {
+	const lane = requestUpdateLane();
 	// 这个update 里的action 就是传入的 state 值
-	const update = createUpdate(action);
+	const update = createUpdate(action, lane);
 	// 将 update 放进 updateQueue 的pending 中
 	enqueueUpdate(updateQueue, update);
 	// 开始调度更新
-	scheduleUpdateOnFiber(fiber);
+	scheduleUpdateOnFiber(fiber, lane);
 }
 
 /**
