@@ -4,7 +4,15 @@ import { completeWork } from './completeWork';
 import { HostRoot } from './workTags';
 import { MutationMask, NoFlags } from './fiberFlags';
 import { commitMutationEffects } from './commitWork';
-import { Lane, mergeLanes } from './fiberLanes';
+import {
+	getHighestPriorityLane,
+	Lane,
+	mergeLanes,
+	NoLane,
+	SyncLane
+} from './fiberLanes';
+import { flushSyncCallbacks, scheduleSyncCallback } from './syncTaskQueue';
+import { scheduleMicroTask } from 'hostConfig';
 
 let workInProgress: FiberNode | null = null;
 
@@ -18,16 +26,40 @@ function prepareFreshStack(root: FiberRootNode) {
 
 // 在fiber中调度update
 // 这个函数的作用是开始对某个Fiber节点进行调度更新
+// 每次更新都会调用
 export function scheduleUpdateOnFiber(fiber: FiberNode, lane: Lane) {
-	// TODO 调度功能
 	// fiberRootNode
 	// 首先找到根管理节点
 	const root = markUpdateFromFiberToRoot(fiber);
 
 	markRootUpdated(root, lane);
 
-	// 然后开始对root节点进行渲染
-	renderRoot(root);
+	// 这里开始调度更新
+	ensureRootIsScheduled(root);
+}
+
+// 调度阶段的入口
+function ensureRootIsScheduled(root: FiberRootNode) {
+	const updateLane = getHighestPriorityLane(root.pendingLanes);
+	if (updateLane === NoLane) {
+		return;
+	}
+	if (updateLane === SyncLane) {
+		// 同步优先级 用微任务调度
+		if (__DEV__) {
+			console.log('在微任务中调度，优先级：', updateLane);
+		}
+		/*
+		 多个更新会在这里产生一个数组,数组的每一项就是一个回调函数
+		 [performSyncWorkOnRoot,performSyncWorkOnRoot,performSyncWorkOnRoot]
+		* */
+		scheduleSyncCallback(performSyncWorkOnRoot.bind(null, root, updateLane));
+		// 这里虽然调用了三次，但是有 isFlushingSyncQueue 变量控制，所以里边的调度数组(syncQueue) 只会遍历调用一次
+		// 并且微任务会在所有同步执行完成才会调用这三次
+		scheduleMicroTask(flushSyncCallbacks);
+	} else {
+		// TODO 其他优先级会用宏任务调度
+	}
 }
 
 function markRootUpdated(root: FiberRootNode, lane: Lane) {
@@ -52,7 +84,14 @@ function markUpdateFromFiberToRoot(fiber: FiberNode) {
 /**
  * 开始从根管理节点渲染
  * */
-function renderRoot(root: FiberRootNode) {
+function performSyncWorkOnRoot(root: FiberRootNode, lane: Lane) {
+	const nextLanes = getHighestPriorityLane(root.pendingLanes);
+	if (nextLanes !== SyncLane) {
+		// 其他比 SyncLane 低的优先级
+		// NoLane
+		ensureRootIsScheduled(root);
+		return;
+	}
 	// 初始化 创建 workInProgress
 	prepareFreshStack(root);
 	do {
