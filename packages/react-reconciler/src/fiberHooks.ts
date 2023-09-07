@@ -11,7 +11,7 @@ import {
 } from './updateQueue';
 import { Action } from 'shared/ReactTypes';
 import { scheduleUpdateOnFiber } from './workLoop';
-import { requestUpdateLane } from './fiberLanes';
+import { Lane, NoLane, requestUpdateLane } from './fiberLanes';
 
 // 当前处理的fiber
 // 这个参数只会在函数组件内部使用，
@@ -20,6 +20,8 @@ let currentlyRenderingFiber: FiberNode | null = null;
 let workInProgressHook: Hook | null = null;
 
 let currentHook: Hook | null = null;
+
+let renderLane: Lane = NoLane;
 
 // 只有在函数组件内部，才会写入  currentDispatcher
 const { currentDispatcher } = internals;
@@ -33,13 +35,14 @@ interface Hook {
 /**
  * 用于在函数组件中使用 Hooks 的渲染流程
  * */
-export function renderWithHooks(wip: FiberNode) {
+export function renderWithHooks(wip: FiberNode, lane: Lane) {
 	// render 之前，赋值操作
 	// 为了在函数组件内部使用 Hooks 时能够获取到当前组件的 Fiber 节点
 	// 并且只会在函数自建内部才会记录
 	currentlyRenderingFiber = wip;
 	// 接下来要把这个参数赋值为链表，所以先重置一下
 	wip.memoizedState = null;
+	renderLane = lane;
 
 	// 这个current 拿到的就是 上次渲染的fiber，wip就是本次的fiber，如果是mount的话就是 null
 	const current = wip.alternate;
@@ -64,6 +67,7 @@ export function renderWithHooks(wip: FiberNode) {
 	currentlyRenderingFiber = null;
 	workInProgressHook = null;
 	currentHook = null;
+	renderLane = NoLane;
 	return children;
 }
 
@@ -89,7 +93,11 @@ function updateState<State>(): [State, Dispatch<State>] {
 
 	if (pending !== null) {
 		// 这里就是调用处理调用的state值
-		const { memoizedState } = processUpdateQueue(hook.memoizedState, pending);
+		const { memoizedState } = processUpdateQueue(
+			hook.memoizedState,
+			pending,
+			renderLane
+		);
 		// 新的hook 的 memoizedState 就为处理好的值
 		hook.memoizedState = memoizedState;
 	}

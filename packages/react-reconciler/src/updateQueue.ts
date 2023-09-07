@@ -67,20 +67,48 @@ export const enqueueUpdate = <State>(
 // 消费队列
 export const processUpdateQueue = <State>(
 	baseState: State,
-	pendingUpdate: Update<State> | null
+	pendingUpdate: Update<State> | null,
+	renderLane: Lane
 ): { memoizedState: State } => {
 	const result: ReturnType<typeof processUpdateQueue<State>> = {
 		memoizedState: baseState
 	};
+
+	/*
+		updateCount(count=>count+1)
+		updateCount(count=>count+1)
+		updateCount(count=>count+1)
+		三次更新分别对应 abc更新
+		pendingUpdate c->a->b->c
+		first 为 a
+		pending 也为 a
+		updateLane === renderLane 条件暂时都为SyncLane，故肯定进入
+		最后 执行之后 count为3
+	* */
 	if (pendingUpdate !== null) {
-		// baseState 1 update(x)=>4x memoizedState 4
-		const action = pendingUpdate.action;
-		if (action instanceof Function) {
-			result.memoizedState = action(baseState);
-		} else {
-			// baseState 1 update 2 -> memoizedState 2
-			result.memoizedState = action;
-		}
+		// 看下 enqueueUpdate 方法，pendingUpdate.next 为第一个更新
+		// 第一个update
+		const first = pendingUpdate.next;
+		let pending = pendingUpdate.next as Update<any>;
+		do {
+			const updateLane = pending.lane;
+			if (updateLane === renderLane) {
+				// baseState 1 update(x)=>4x memoizedState 4
+				const action = pending.action;
+				if (action instanceof Function) {
+					baseState = action(baseState);
+				} else {
+					// baseState 1 update 2 -> memoizedState 2
+					baseState = action;
+				}
+			} else {
+				if (__DEV__) {
+					console.error('不应该进入updateLane !== renderLane这个逻辑');
+				}
+			}
+			pending = pending.next as Update<any>;
+		} while (pending !== first);
 	}
+	result.memoizedState = baseState;
 	return result;
 };

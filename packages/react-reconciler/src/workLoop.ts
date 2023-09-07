@@ -7,6 +7,7 @@ import { commitMutationEffects } from './commitWork';
 import {
 	getHighestPriorityLane,
 	Lane,
+	markRootFinished,
 	mergeLanes,
 	NoLane,
 	SyncLane
@@ -15,13 +16,16 @@ import { flushSyncCallbacks, scheduleSyncCallback } from './syncTaskQueue';
 import { scheduleMicroTask } from 'hostConfig';
 
 let workInProgress: FiberNode | null = null;
+// 本次更新对应的lane
+let wipRootRenderLane: Lane = NoLane;
 
 // 准备一个新的工作进度
-function prepareFreshStack(root: FiberRootNode) {
+function prepareFreshStack(root: FiberRootNode, lane: Lane) {
 	// 这个 root.current 就是 hostRootFiber 也就是 fiber的根节点
 
 	// 创建一个新的工作进度节点，这个节点是当前Fiber节点（current）的替代节点，表示在下一次更新中应该呈现的状态
 	workInProgress = createWorkInProgress(root.current, {});
+	wipRootRenderLane = lane;
 }
 
 // 在fiber中调度update
@@ -92,8 +96,11 @@ function performSyncWorkOnRoot(root: FiberRootNode, lane: Lane) {
 		ensureRootIsScheduled(root);
 		return;
 	}
+	if (__DEV__) {
+		console.warn('render阶段开始');
+	}
 	// 初始化 创建 workInProgress
-	prepareFreshStack(root);
+	prepareFreshStack(root, lane);
 	do {
 		try {
 			// 处理每个fiber，打标记
@@ -106,10 +113,17 @@ function performSyncWorkOnRoot(root: FiberRootNode, lane: Lane) {
 			workInProgress = null;
 		}
 	} while (true);
+
+	// render阶段结束以后
+
 	// 获取当前Fiber节点的替代节点（也就是“工作进度”节点）
 	// 每个Fiber节点都有一个替代节点，它表示在下一次更新中应该呈现的状态
 	const finishedWork = root.current.alternate;
 	root.finishedWork = finishedWork;
+	// 本次更新消费的lane
+	root.finishedLane = lane;
+	// 更新完之后，wipLane 值空
+	wipRootRenderLane = NoLane;
 
 	// wip fiberNode 树，树中的 flags
 	commitRoot(root);
@@ -126,8 +140,17 @@ function commitRoot(root: FiberRootNode) {
 	if (__DEV__) {
 		console.warn('commit阶段开始', finishedWork);
 	}
+
+	const lane = root.finishedLane;
+	if (lane === NoLane && __DEV__) {
+		console.error('commit阶段finishedLane不应该是NoLane');
+	}
+
 	// 重置
 	root.finishedWork = null;
+	root.finishedLane = NoLane;
+	// 移除当前更新的lane
+	markRootFinished(root, lane);
 
 	// commit 阶段的三个子阶段
 
@@ -164,7 +187,7 @@ function workLoop() {
 }
 
 function performUnitOfWork(fiber: FiberNode) {
-	const next = beginWork(fiber);
+	const next = beginWork(fiber, wipRootRenderLane);
 	fiber.memoizedProps = fiber.pendingProps;
 	// 返回null，说明这个Fiber节点已经完成了它的工作，接下来就需要完成这个Fiber节点的收尾工作
 	if (next === null) {
